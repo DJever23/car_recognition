@@ -66,7 +66,7 @@ def verify_scale(rotate_rect):
    theta = 30
 
    # 宽或高为0，不满足矩形直接返回False
-   if rotate_rect[1][0]==0 or rotate_rect[1][1]==0:
+   if rotate_rect[1][0]==0 or rotate_rect[1][1]==0:    #rotate_rect[0]为外接矩形的中心坐标(x,y);[1][0]为宽，[1][1]为高
        return False
 
    r = rotate_rect[1][0]/rotate_rect[1][1]
@@ -130,33 +130,44 @@ def img_Transform(car_rect,image):
 
 def pre_process(orig_img):
 
-    gray_img = cv2.cvtColor(orig_img, cv2.COLOR_BGR2GRAY)
+    gray_img = cv2.cvtColor(orig_img, cv2.COLOR_BGR2GRAY)    #将原图转换为灰度图
+    cv2.imwrite('./carIdentityData/opencv_output/gray_img.jpg', gray_img)
     #cv2.imshow('gray_img', gray_img)
 
-    blur_img = cv2.blur(gray_img, (3, 3))
+    blur_img = cv2.blur(gray_img, (3, 3))   #均值滤波
+    cv2.imwrite('./carIdentityData/opencv_output/blur.jpg', blur_img)
     #cv2.imshow('blur', blur_img)
 
-    sobel_img = cv2.Sobel(blur_img, cv2.CV_16S, 1, 0, ksize=3)
-    sobel_img = cv2.convertScaleAbs(sobel_img)
+    sobel_img = cv2.Sobel(blur_img, cv2.CV_16S, 1, 0, ksize=3)   #沿x轴求导，找边缘
+    sobel_img = cv2.convertScaleAbs(sobel_img)   #转换图片格式
+    cv2.imwrite('./carIdentityData/opencv_output/sobel.jpg', sobel_img)
     #cv2.imshow('sobel', sobel_img)
 
-    hsv_img = cv2.cvtColor(orig_img, cv2.COLOR_BGR2HSV)
+    hsv_img = cv2.cvtColor(orig_img, cv2.COLOR_BGR2HSV)   #将原图的颜色域转到HSV域，色调、饱和度、亮度
+    cv2.imwrite('./carIdentityData/opencv_output/hsv_pic.jpg', hsv_img)
+    #cv2.imshow('hsv_pic',hsv_img)
 
-    h, s, v = hsv_img[:, :, 0], hsv_img[:, :, 1], hsv_img[:, :, 2]
-    # 黄色色调区间[26，34],蓝色色调区间:[100,124]
+    h, s, v = hsv_img[:, :, 0], hsv_img[:, :, 1], hsv_img[:, :, 2]   #h，s，v分别取矩阵的第一列、第二列、第三列的所有元素
+    # 黄色色调区间[26，34],蓝色色调区间:[100,124]，饱和度和亮度均需要高于70
     blue_img = (((h > 26) & (h < 34)) | ((h > 100) & (h < 124))) & (s > 70) & (v > 70)
-    blue_img = blue_img.astype('float32')
+    blue_img = blue_img.astype('float32')  #将blue_img格式转换为浮点型32位
+    cv2.imwrite('./carIdentityData/opencv_output/blue&yellow.jpg', blue_img)
+    #cv2.imshow('blue&yellow',blue_img)
 
-    mix_img = np.multiply(sobel_img, blue_img)
+    mix_img = np.multiply(sobel_img, blue_img)    #两个数组或矩阵相乘，对应位置直接相乘
+    cv2.imwrite('./carIdentityData/opencv_output/mix.jpg', mix_img)
     #cv2.imshow('mix', mix_img)
 
     mix_img = mix_img.astype(np.uint8)
 
-    ret, binary_img = cv2.threshold(mix_img, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    cv2.imshow('binary',binary_img)
+    ret, binary_img = cv2.threshold(mix_img, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)   #使用最大类间方差法将图像二值化，自适应找出最合适的阈值
+    #print(ret)
+    cv2.imwrite('./carIdentityData/opencv_output/binary.jpg', binary_img)
+    #cv2.imshow('binary',binary_img)
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(21,5))
-    close_img = cv2.morphologyEx(binary_img, cv2.MORPH_CLOSE, kernel)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(21,5))     #获得结构元素
+    close_img = cv2.morphologyEx(binary_img, cv2.MORPH_CLOSE, kernel)  #闭操作，先膨胀再腐蚀，使图像轮廓更光滑（need more）
+    cv2.imwrite('./carIdentityData/opencv_output/close.jpg', close_img)
     #cv2.imshow('close', close_img)
 
     return close_img
@@ -229,8 +240,10 @@ def verify_color(rotate_rect,src_image):
                 break
     #======================调试用======================#
     show_seed = np.random.uniform(1,100,1).astype(np.uint16)
-    cv2.imshow('floodfill'+str(show_seed),flood_img)
-    cv2.imshow('flood_mask'+str(show_seed),mask)
+    #cv2.imshow('floodfill'+str(show_seed),flood_img)
+    #cv2.imshow('flood_mask'+str(show_seed),mask)
+    cv2.imwrite('./carIdentityData/opencv_output/floodfill.jpg', flood_img)
+    cv2.imwrite('./carIdentityData/opencv_output/flood_mask.jpg', mask)
     #======================调试用======================#
     # 获取掩模上被填充点的像素点，并求点集的最小外接矩形
     mask_points = []
@@ -246,13 +259,16 @@ def verify_color(rotate_rect,src_image):
 
 # 车牌定位
 def locate_carPlate(orig_img,pred_image):
+    car_plate_w, car_plate_h = 136, 36 #dengjie.tkadd
     carPlate_list = []
     temp1_orig_img = orig_img.copy() #调试用
     temp2_orig_img = orig_img.copy() #调试用
     #cloneImg,contours,heriachy = cv2.findContours(pred_image,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
     contours, heriachy = cv2.findContours(pred_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    for i,contour in enumerate(contours):
-        cv2.drawContours(temp1_orig_img, contours, i, (0, 255, 255), 2)
+    #print(contours)    #dengjie
+    # RETR_EXTERNAL找最外层轮廓，CHAIN_APPROX_SIMPLE仅保存轮廓的拐点信息，把所有轮廓拐点处的点保存入contours向量内，拐点与拐点之间直线段上的信息点不予保留。heriachy这里没有用到
+    for i,contour in enumerate(contours):     #enumerate同时获得列表或者字符串的索引和值，i是索引，contour是值
+        cv2.drawContours(temp1_orig_img, contours, i, (0, 255, 0), 2)
         # 获取轮廓最小外接矩形，返回值rotate_rect
         rotate_rect = cv2.minAreaRect(contour)
         # 根据矩形面积大小和长宽比判断是否是车牌
@@ -268,11 +284,13 @@ def locate_carPlate(orig_img,pred_image):
             for k in range(4):
                 n1,n2 = k%4,(k+1)%4
                 cv2.line(temp1_orig_img,(box[n1][0],box[n1][1]),(box[n2][0],box[n2][1]),(255,0,0),2)
-            cv2.imshow('opencv_' + str(i), car_plate)
+            #cv2.imshow('opencv_' + str(i), car_plate)
+            cv2.imwrite('./carIdentityData/opencv_output/opencv_1.jpg', car_plate)
             #========================调试看效果========================#
             carPlate_list.append(car_plate)
 
-    cv2.imshow('contour', temp1_orig_img)
+    cv2.imwrite('./carIdentityData/opencv_output/contour.jpg', temp1_orig_img)
+    #cv2.imshow('contour', temp1_orig_img)
     return carPlate_list
 
 # 左右切割
@@ -323,6 +341,7 @@ def horizontal_cut_chars(plate):
     return char_addr_list
 
 def get_chars(car_plate):
+    char_w, char_h = 20, 20#dengjie.tkadd
     img_h,img_w = car_plate.shape[:2]
     h_proj_list = [] # 水平投影长度列表
     h_temp_len,v_temp_len = 0,0
@@ -379,7 +398,7 @@ def get_chars(car_plate):
         char_img = car_plate[chars_top:chars_bottom+1,addr[0]:addr[1]]
         char_img = cv2.resize(char_img,(char_w,char_h))
         char_imgs.append(char_img)
-        cv2.imshow('22',char_img)     #dengjie2
+        #cv2.imshow('22',char_img)     #dengjie2
         cv2.imwrite('./carIdentityData/opencv_output/char_%d.jpg'%(i),char_img)
     return char_imgs
 
@@ -387,7 +406,7 @@ def extract_char(car_plate):
     gray_plate = cv2.cvtColor(car_plate,cv2.COLOR_BGR2GRAY)
     ret,binary_plate = cv2.threshold(gray_plate,0,255,cv2.THRESH_BINARY|cv2.THRESH_OTSU)
     char_img_list = get_chars(binary_plate)
-    cv2.imshow('1',binary_plate)  #dengjie
+    #cv2.imshow('1',binary_plate)  #dengjie
     return char_img_list
 
 def cnn_select_carPlate(plate_list,model_path):
@@ -451,9 +470,9 @@ if __name__ == '__main__':
     cur_dir = sys.path[0]
     car_plate_w,car_plate_h = 136,36
     char_w,char_h = 20,20
-    plate_model_path = os.path.join(cur_dir, './carIdentityData/model/plate_recongnize/model.ckpt-510.meta')
-    char_model_path = os.path.join(cur_dir,'./carIdentityData/model/char_recongnize/model.ckpt-500.meta')
-    img = cv2.imread('../images/pictures/12.jpg')
+    plate_model_path = os.path.join(cur_dir, './carIdentityData/model/plate_recongnize/model.ckpt-1020.meta')
+    char_model_path = os.path.join(cur_dir,'./carIdentityData/model/char_recongnize/model.ckpt-1040.meta')
+    img = cv2.imread('../images/pictures/9.jpg')
 
     # 预处理
     pred_img = pre_process(img)
@@ -466,13 +485,14 @@ if __name__ == '__main__':
     if ret == False:
         print("未检测到车牌")
         sys.exit(-1)
-    cv2.imshow('cnn_plate',car_plate)
+    #cv2.imshow('cnn_plate',car_plate)
+    cv2.imwrite('./carIdentityData/opencv_output/cnn_plate.jpg', car_plate)
 
     # 字符提取
     char_img_list = extract_char(car_plate)
 
     # CNN字符识别
     text = cnn_recongnize_char(char_img_list,char_model_path)
-    print('dengjie',text)
+    print('result:',text)
 
     cv2.waitKey(0)
