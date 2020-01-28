@@ -46,7 +46,7 @@ class Surface(ttk.Frame):
         #位置在上面
         from_vedio_ctl = ttk.Button(frame_right2, text="Open camera", width=20, style="TButton",command=self.from_vedio)
         from_pic_ctl = ttk.Button(frame_right2, text="Open picture",width=20, style="TButton",command=self.from_pic)
-        #from_img_pre = ttk.Button(frame_right2, text="Show pre_img",width=20, style="TButton",command=self.show_img_pre)
+        from_img_pre = ttk.Button(frame_right2, text="Show pre_img",width=20, style="TButton",command=self.show_img_pre)
 
         self.image_ctl = ttk.Label(frame_left)
         self.image_ctl.pack(anchor="nw")
@@ -60,8 +60,7 @@ class Surface(ttk.Frame):
         self.color_ctl.grid(column=0, row=4, sticky=tk.W)
         from_pic_ctl.pack(anchor="se", pady="5")
         from_vedio_ctl.pack(anchor="se", pady="5")
-
-        #from_img_pre.pack(anchor="se", pady="5")
+        from_img_pre.pack(anchor="se", pady="5")
 
 
     def get_imgtk(self, img_bgr):
@@ -104,11 +103,31 @@ class Surface(ttk.Frame):
             self.roi_ctl.configure(state='disabled')
             self.r_ctl.configure(text="")
             #self.color_ctl.configure(state='disabled')
-    '''	
+    
     def show_img_pre(self):
-       os.system("start explorer /home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output")
-       #os.chdir('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/')
-    '''
+       pre_img1=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/blur.jpg')
+       pre_img2=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/sobel.jpg')
+       pre_img3=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/hsv_pic.jpg')
+       pre_img4=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/contour.jpg')
+       pre_img5=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/floodfill.jpg')
+       pre_img6=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/plate.jpg')
+       pre_img7=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/cnn_plate.jpg')
+       
+       cv2.imshow('blur',pre_img1)
+       cv2.imshow('sobel',pre_img2)
+       cv2.imshow('hsv_pic',pre_img3)
+       cv2.imshow('contour',pre_img4)
+       cv2.imshow('floodfill',pre_img5)
+       cv2.imshow('plate',pre_img6)
+       cv2.imshow('cnn_plate',pre_img7)
+       
+       while True:
+           ch = cv2.waitKey(1)
+           if ch == 27:
+                break
+       cv2.destroyAllWindows()
+       
+       
     def from_vedio(self):
         args, sources = getopt.getopt(sys.argv[1:], '', 'shotdir=')
         args = dict(args)
