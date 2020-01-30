@@ -12,9 +12,6 @@ import sys
 import getopt
 
 
-
-
-
 class Surface(ttk.Frame):
     pic_path = ""
     viewhigh = 600
@@ -110,7 +107,7 @@ class Surface(ttk.Frame):
        pre_img3=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/hsv_pic.jpg')
        pre_img4=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/contour.jpg')
        pre_img5=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/floodfill.jpg')
-       pre_img6=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/plate.jpg')
+       pre_img6=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/plates.jpg')
        pre_img7=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/cnn_plate.jpg')
        
        cv2.imshow('blur',pre_img1)
@@ -118,7 +115,7 @@ class Surface(ttk.Frame):
        cv2.imshow('hsv_pic',pre_img3)
        cv2.imshow('contour',pre_img4)
        cv2.imshow('floodfill',pre_img5)
-       cv2.imshow('plate',pre_img6)
+       cv2.imshow('plates',pre_img6)
        cv2.imshow('cnn_plate',pre_img7)
        
        while True:
@@ -175,7 +172,7 @@ class Surface(ttk.Frame):
         self.pic_path = askopenfilename(title="选择图片", filetypes=[("jpg", "*.jpg")])
         cur_dir = sys.path[0]
         plate_model_path = os.path.join(cur_dir, './carIdentityData/model/plate_recongnize/model.ckpt-1020.meta')
-        char_model_path = os.path.join(cur_dir,'./carIdentityData/model/char_recongnize/model.ckpt-1040.meta')
+        char_model_path = os.path.join(cur_dir,'./carIdentityData/model/char_recongnize/model.ckpt-1030.meta')
 
         if self.pic_path:
             img_bgr = cv2.imread(self.pic_path)
