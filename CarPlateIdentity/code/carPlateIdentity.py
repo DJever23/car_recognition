@@ -173,7 +173,7 @@ def pre_process(orig_img):
 
     h, s, v = hsv_img[:, :, 0], hsv_img[:, :, 1], hsv_img[:, :, 2]   #h，s，v分别取矩阵的第一列、第二列、第三列的所有元素
     # 黄色色调区间[26，34],蓝色色调区间:[100,124]，饱和度和亮度均需要高于70
-    blue_img = (((h > 26) & (h < 34)) | ((h > 100) & (h < 124))) & (s > 70) & (v > 70)
+    blue_img = (((h > 11) & (h < 34)) | ((h > 35) & (h < 99)) | ((h > 100) & (h < 124))) & (s > 70) & (v > 70)
     blue_img = blue_img.astype('float32')  #将blue_img格式转换为浮点型32位
     cv2.imwrite('./carIdentityData/opencv_output/blue&yellow.jpg', blue_img)
     #cv2.imshow('blue&yellow',blue_img)
@@ -317,7 +317,7 @@ def verify_color(rotate_rect,src_image):
         rand_index = np.random.choice(rand_seed_num,1,replace=False)#从[0,5000)之间随机抽取一个数，且不能重复
         row,col = points_row[rand_index],points_col[rand_index]
         # 限制随机种子必须是车牌背景色，黄色色调区间[26，34],蓝色色调区间:[100,124]
-        if (((h[row,col]>26)&(h[row,col]<34))|((h[row,col]>100)&(h[row,col]<124)))&(s[row,col]>70)&(v[row,col]>70):
+        if (((h[row,col]>11)&(h[row,col]<34))|((h[row,col]>35)&(h[row,col]<100))|((h[row,col]>100)&(h[row,col]<124)))&(s[row,col]>70)&(v[row,col]>70):
             cv2.floodFill(src_image, mask, (col,row), (255, 255, 255), (loDiff,) * 3, (upDiff,) * 3, flags)
             '''
             floodFill(image, mask, seedPoint, newVal, loDiff=None, upDiff=None, flags=None)
@@ -410,7 +410,7 @@ def locate_carPlate(orig_img,pred_image):
                        lineType，线条的类型
                 '''
             #cv2.imshow('opencv_' + str(i), car_plate)
-            cv2.imwrite('./carIdentityData/opencv_output/opencv_1.jpg', car_plate)
+            cv2.imwrite('./carIdentityData/opencv_output/opencv_%d.jpg'%(i), car_plate)
             #========================调试看效果========================#
             carPlate_list.append(car_plate)
             #print('carPlate_list',carPlate_list)
@@ -423,8 +423,8 @@ def locate_carPlate(orig_img,pred_image):
 def horizontal_cut_chars(plate):#传入车牌二值图像中的字符部分
     char_addr_list = []
     area_left,area_right,char_left,char_right= 0,0,0,0
-    img_w = plate.shape[1]
-
+    img_h,img_w = plate.shape[:2]
+    
     # 获取车牌每列边缘像素点个数
     def getColSum(img,col):
         sum = 0
@@ -435,10 +435,10 @@ def horizontal_cut_chars(plate):#传入车牌二值图像中的字符部分
     sum = 0
     for col in range(img_w):
         sum += getColSum(plate,col)#所有列白色像素点的个数总和
-    
+        
     col_limit = 0
     #col_limit = round(0.3*sum/img_w) # 每列边缘像素点必须超过均值的30%才能判断属于字符区域
-    print('col_limit',sum,img_w,col_limit)#1344.0,136,6.0
+    #print('col_limit',sum,img_w,col_limit)#1344.0,136,6.0
     # 每个字符宽度也进行限制
     charWid_limit = [round(img_w/12),round(img_w/5)]#[11,27]
     is_char_flag = False
@@ -481,7 +481,17 @@ def get_chars(car_plate):#传入车牌二值化图像
     h_startIndex,h_end_index = 0,0 # 水平投影记索引
     h_proj_limit = [0.2,0.8] # 车牌在水平方向的轮廓长度少于20%或多余80%过滤掉
     char_imgs = []
+    
+    def getColSum(img,col):
+        sum = 0
+        for i in range(img.shape[0]):
+            sum += round(img[i,col]/255)#二值图像，img[i,col]=0或255，获取每一列像素值为255的像素个数
+        return sum;
 
+    sum = 0
+    for col in range(img_w):
+        sum += getColSum(car_plate,col)#所有列白色像素点的个数总和
+   
     # 将二值化的车牌水平投影到Y轴，计算投影后的连续长度，连续投影长度可能不止一段
     h_count = [0 for i in range(img_h)]
     for row in range(img_h):
@@ -524,7 +534,11 @@ def get_chars(car_plate):#传入车牌二值化图像
     if h_maxHeight/img_h < 0.5:
         return char_imgs
     chars_top,chars_bottom = h_proj_list[h_maxIndex][0],h_proj_list[h_maxIndex][1]#chars_top=h_proj_list[1][0],chars_bottom=h_proj_list[1][1]
-
+    
+    if sum > img_h *img_w * 0.5:
+         ret,car_plate = cv2.threshold(car_plate,0,255,cv2.THRESH_BINARY_INV|cv2.THRESH_OTSU)
+         #cv2.imshow('THRESH_BINARY_INV',car_plate)
+    
     plates = car_plate[chars_top:chars_bottom+1,:]#获取车牌二值图像中的字符高度部分，plates比car_plate要窄，然后在进行字符分割
     cv2.imwrite('./carIdentityData/opencv_output/car_plate.jpg',car_plate)
     cv2.imwrite('./carIdentityData/opencv_output/plates.jpg', plates)
@@ -536,7 +550,6 @@ def get_chars(car_plate):#传入车牌二值化图像
         char_imgs.append(char_img)
         #cv2.imshow('22',char_img)     #dengjie2
         cv2.imwrite('./carIdentityData/opencv_output/char_%d.jpg'%(i),char_img)
-    #print('char_img',char_img)
     return char_imgs
 
 def extract_char(car_plate):#传入正确的车牌
@@ -594,7 +607,37 @@ def cnn_select_carPlate(plate_list,model_path):
             if result_index == -1:
                 return False,plate_list[0]#返回第一张车牌
             else:
-                return True,plate_list[result_index]#返回正确的索引对应的车牌
+                green = yellow = blue = 0
+                img_hsv = cv2.cvtColor(plate_list[result_index], cv2.COLOR_BGR2HSV)
+                row_num, col_num= img_hsv.shape[:2]
+                # ~ 总共的像素个数
+                card_img_count = row_num * col_num
+
+                for i in range(row_num):
+                    for j in range(col_num):
+                        H = img_hsv.item(i, j, 0)
+                        S = img_hsv.item(i, j, 1)
+                        V = img_hsv.item(i, j, 2)
+                        # ~ 根据HSV空间的值确定颜色
+                        if 11 < H <= 34 and S > 34:
+                            yellow += 1
+                        elif 35 < H <= 99 and S > 34:
+                            green += 1
+                        elif 99 < H <= 124 and S > 34:
+                            blue += 1
+                color = "no"
+
+                # ~ 若某种颜色的像素个数占一半以上，则判别为该颜色
+                if yellow*2 >= card_img_count:
+                    color = "yellow"
+
+                elif green*2 >= card_img_count:
+                    color = "green"
+
+                elif blue*2 >= card_img_count:
+                    color = "blue"
+                    
+                return True,plate_list[result_index],color#返回正确的索引对应的车牌
 
 def cnn_recongnize_char(img_list,model_path):
     g2 = tf.Graph()
@@ -630,7 +673,7 @@ if __name__ == '__main__':
     char_w,char_h = 20,20
     plate_model_path = os.path.join(cur_dir, './carIdentityData/model/plate_recongnize/model.ckpt-1020.meta')
     char_model_path = os.path.join(cur_dir,'./carIdentityData/model/char_recongnize/model.ckpt-1030.meta')
-    img = cv2.imread('./plate_pic/4.jpg')
+    img = cv2.imread('./plate_pic/24.jpg')
 
     # 预处理
     pred_img = pre_process(img)
@@ -639,7 +682,7 @@ if __name__ == '__main__':
     car_plate_list = locate_carPlate(img,pred_img)
 
     # CNN车牌过滤
-    ret,car_plate = cnn_select_carPlate(car_plate_list,plate_model_path)#True,正确的车牌
+    ret,car_plate,color = cnn_select_carPlate(car_plate_list,plate_model_path)#True,正确的车牌
     if ret == False:
         print("未检测到车牌")
         sys.exit(-1)#sys.exit(-1)告诉程序退出。它基本上只是停止继续执行python代码。-1只是传入的状态码。通常0表示成功执行，其他任何数字（通常为1）表示发生故障。
@@ -652,5 +695,6 @@ if __name__ == '__main__':
     # CNN字符识别
     text = cnn_recongnize_char(char_img_list,char_model_path)
     print('result:',text)
+    print(color)
 
     cv2.waitKey(0)

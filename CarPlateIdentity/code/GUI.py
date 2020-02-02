@@ -20,7 +20,7 @@ class Surface(ttk.Frame):
     thread = None
     thread_run = False
     camera = None
-    #color_transform = {"green":("绿牌","#55FF55"), "yello":("黄牌","#FFFF00"), "blue":("蓝牌","#6666FF")}
+    color_transform = {"green":("绿牌","#55FF55"), "yello":("黄牌","#FFFF00"), "blue":("蓝牌","#6666FF")}
 
     def __init__(self, win):
         ttk.Frame.__init__(self, win)
@@ -81,7 +81,7 @@ class Surface(ttk.Frame):
         return imgtk
         #此方法得到resize后且高质量的图片
 
-    def show_roi(self, r, roi):#传入字符r与车牌图像roi
+    def show_roi(self, r, roi,color):#传入字符r与车牌图像roi
         if r :
             roi = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
             roi = Image.fromarray(roi)
@@ -89,17 +89,17 @@ class Surface(ttk.Frame):
             self.roi_ctl.configure(image=self.imgtk_roi, state='enable')
             self.r_ctl.configure(text=str(r))
             self.update_time = time.time()
-            '''         
+                    
             try:
                 c = self.color_transform[color]
                 self.color_ctl.configure(text=c[0], background=c[1], state='enable')
             except:
                 self.color_ctl.configure(state='disabled')
-            '''
+            
         if self.update_time + 8 < time.time():
             self.roi_ctl.configure(state='disabled')
             self.r_ctl.configure(text="")
-            #self.color_ctl.configure(state='disabled')
+            self.color_ctl.configure(state='disabled')
     
     def show_img_pre(self):
        pre_img1=cv2.imread('/home/dengjie/dengjie/project/car_recognition/CarPlateIdentity/code/carIdentityData/opencv_output/blur.jpg')
@@ -183,7 +183,7 @@ class Surface(ttk.Frame):
             # 车牌定位
             car_plate_list = carPlateIdentity.locate_carPlate(img_bgr,pred_img)
             # CNN车牌过滤
-            ret,car_plate = carPlateIdentity.cnn_select_carPlate(car_plate_list,plate_model_path)
+            ret,car_plate,color = carPlateIdentity.cnn_select_carPlate(car_plate_list,plate_model_path)
             cv2.imwrite('./carIdentityData/opencv_output/cnn_plate.jpg', car_plate)
             # 字符提取
             char_img_list = carPlateIdentity.extract_char(car_plate)
@@ -191,7 +191,7 @@ class Surface(ttk.Frame):
             text = carPlateIdentity.cnn_recongnize_char(char_img_list, char_model_path)
             print('result:', text)
             #r, roi = self.predictor.predict(img_bgr)#识别到的字符、定位的车牌图像
-            self.show_roi(text, car_plate)
+            self.show_roi(text, car_plate,color)
 
     '''
     def vedio_thread(self):
