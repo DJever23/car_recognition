@@ -7,7 +7,7 @@ from PIL import Image, ImageTk
 #import threading
 import time
 import os
-from video import create_capture
+# video import create_capture
 import sys
 import getopt
 
@@ -126,32 +126,48 @@ class Surface(ttk.Frame):
        
        
     def from_vedio(self):
-        args, sources = getopt.getopt(sys.argv[1:], '', 'shotdir=')
-        args = dict(args)
-        shotdir = args.get('--shotdir', '.')
-        if len(sources) == 0:
-            sources = [0]
+       video=[0,"http://admin:admin@192.168.0.13:8081","http://admin:admin@iPhone.local:8081","http://admin:admin@10.119.223.51:8081"]
+       '''
+       默认情况下用户名和密码都是admin,客户端与IP摄像机服务器需处于同一局域网下,wifi
+       参数为0表示打开内置摄像头，参数是视频文件路径则打开视频
+       video="http://admin:admin@192.168.0.13:8081"  和  video="http://admin:admin@iPhone.local:8081"是使用wifi
+       video="http://admin:admin@10.119.223.51:8081"使用流量，连接超时
+       '''
+       video = video[0]
+       capture =cv2.VideoCapture(video)
 
-        caps = list(map(create_capture, sources))
-        shot_idx = 0
-        while True:
-            imgs = []
-            for i, cap in enumerate(caps):
-                ret, img = cap.read()
-                imgs.append(img)
-                cv2.imshow('capture %d' % i, img)
-            ch = cv2.waitKey(1)
-            if ch == 27:
+       # 建个窗口并命名
+       cv2.namedWindow("camera",1)
+       num = 0
+
+       # 用于循环显示图片，达到显示视频的效果
+       while True:
+            ret, frame = capture.read()
+    
+            # 在frame上显示test字符
+            image1=cv2.putText(frame,'test', (50,100), 
+                        cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (255, 0 ,0), 
+                        thickness = 2, lineType = 2)
+                
+            cv2.imshow('camera',frame)
+    
+            # 不加waitkey（） 则会图片显示后窗口直接关掉
+            key = cv2.waitKey(1)
+    
+            if key == 27:
+                #esc键退出
+                print("esc break...")
                 break
-            if ch == ord(' '):
-                for i, img in enumerate(imgs):
-                    fn = '%s/shot_%d_%03d.jpg' % (shotdir, i, shot_idx)
-                    cv2.imwrite(fn, img)
-                    print(fn, 'saved')
-                shot_idx += 1
-        cv2.destroyAllWindows()
 
-        '''
+            if key == ord(' '):
+                # 保存一张图像
+                num = num+1
+                filename = "frames_%s.jpg" % num
+                print('已保存图片：%s.jpg' % num)
+                cv2.imwrite(filename,frame)
+       cv2.destroyAllWindows()
+
+       '''
         if self.thread_run:
             return
         if self.camera is None:
@@ -166,7 +182,7 @@ class Surface(ttk.Frame):
         self.thread.setDaemon(True)
         self.thread.start()
         self.thread_run = True
-        '''
+       '''
     def from_pic(self):
         self.thread_run = False
         self.pic_path = askopenfilename(title="选择图片", filetypes=[("jpg", "*.jpg")])

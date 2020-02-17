@@ -1,119 +1,38 @@
-#!/usr/bin/env python
+import cv2
+#手机上要下载一个app ip摄像头
+#video="http://admin:admin@iPhone.local:8081"#此处@后的ipv4 地址需要修改为自己的地址
+video="http://admin:admin@192.168.0.13:8081" #默认情况下用户名和密码都是admin
+# 参数为0表示打开内置摄像头，参数是视频文件路径则打开视频
+#video = 0
+capture =cv2.VideoCapture(video)
 
-'''
-Video capture sample.
+# 建个窗口并命名
+cv2.namedWindow("camera",1)
+num = 0
 
-Sample shows how VideoCapture class can be used to acquire video
-frames from a camera of a movie file. Also the sample provides
-an example of procedural video generation by an object, mimicking
-the VideoCapture interface (see Chess class).
+# 用于循环显示图片，达到显示视频的效果
+while True:
 
-'create_capture' is a convenience function for capture creation,
-falling back to procedural video in case of error.
+    ret, frame = capture.read()
+    
+    # 在frame上显示test字符
+    image1=cv2.putText(frame,'test', (50,100), 
+                cv2.FONT_HERSHEY_COMPLEX_SMALL, 2, (255, 0 ,0), 
+                thickness = 2, lineType = 2)
+                
+    cv2.imshow('camera',frame)
+    
+    # 不加waitkey（） 则会图片显示后窗口直接关掉
+    key = cv2.waitKey(1)
+    
+    if key == 27:
+        #esc键退出
+        print("esc break...")
+        break
 
-Usage:
-    video.py [--shotdir <shot path>] [source0] [source1] ...'
-
-    sourceN is an
-     - integer number for camera capture
-     - name of video file
-     - synth:<params> for procedural video
-
-Synth examples:
-    synth:bg=lena.jpg:noise=0.1
-    synth:class=chess:bg=lena.jpg:noise=0.1:size=640x480
-
-Keys:
-    ESC    - exit
-    SPACE  - save current frame to <shot path> directory
-
-'''
-
-# Python 2/3 compatibility
-from __future__ import print_function
-
-import numpy as np
-import cv2 as cv
-
-import re
-
-from numpy import pi, sin, cos
-
-# built-in modules
-from time import clock
-
-# local modules
-#from tst_scene_render import TestSceneRender
-#import common
-
-presets = dict(
-    empty = 'synth:',
-    lena = 'synth:bg=lena.jpg:noise=0.1',
-    chess = 'synth:class=chess:bg=lena.jpg:noise=0.1:size=640x480',
-    book = 'synth:class=book:bg=graf1.png:noise=0.1:size=640x480',
-    cube = 'synth:class=cube:bg=pca_test1.jpg:noise=0.0:size=640x480'
-)
-
-
-def create_capture(source = 0, fallback = presets['chess']):
-    '''source: <int> or '<int>|<filename>|synth [:<param_name>=<value> [:...]]'
-    '''
-    source = str(source).strip()
-
-    # Win32: handle drive letter ('c:', ...)
-    source = re.sub(r'(^|=)([a-zA-Z]):([/\\a-zA-Z0-9])', r'\1?disk\2?\3', source)
-    chunks = source.split(':')
-    chunks = [re.sub(r'\?disk([a-zA-Z])\?', r'\1:', s) for s in chunks]
-
-    source = chunks[0]
-    try: source = int(source)
-    except ValueError: pass
-    params = dict( s.split('=') for s in chunks[1:] )
-
-    cap = None
-    if source == 'synth':
-        Class = classes.get(params.get('class', None), VideoSynthBase)
-        try: cap = Class(**params)
-        except: pass
-    else:
-        cap = cv.VideoCapture(source)
-        if 'size' in params:
-            w, h = map(int, params['size'].split('x'))
-            cap.set(cv.CAP_PROP_FRAME_WIDTH, w)
-            cap.set(cv.CAP_PROP_FRAME_HEIGHT, h)
-    if cap is None or not cap.isOpened():
-        print('Warning: unable to open video source: ', source)
-        if fallback is not None:
-            return create_capture(fallback, None)
-    return cap
-
-if __name__ == '__main__':
-    import sys
-    import getopt
-
-    print(__doc__)
-
-    args, sources = getopt.getopt(sys.argv[1:], '', 'shotdir=')
-    args = dict(args)
-    shotdir = args.get('--shotdir', '.')
-    if len(sources) == 0:
-        sources = [ 0 ]
-
-    caps = list(map(create_capture, sources))
-    shot_idx = 0
-    while True:
-        imgs = []
-        for i, cap in enumerate(caps):
-            ret, img = cap.read()
-            imgs.append(img)
-            cv.imshow('capture %d' % i, img)
-        ch = cv.waitKey(1)
-        if ch == 27:
-            break
-        if ch == ord(' '):
-            for i, img in enumerate(imgs):
-                fn = '%s/shot_%d_%03d.jpg' % (shotdir, i, shot_idx)
-                cv.imwrite(fn, img)
-                print(fn, 'saved')
-            shot_idx += 1
-    cv.destroyAllWindows()
+    if key == ord(' '):
+        # 保存一张图像
+        num = num+1
+        filename = "frames_%s.jpg" % num
+        print('已保存图片：%s.jpg' % num)
+        cv2.imwrite(filename,frame)
